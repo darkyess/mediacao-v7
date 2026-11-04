@@ -174,9 +174,17 @@ export async function onRequestPost({ request, env }) {
     clearTimeout(timer);
   }
 
-  if (r.status === 429) return resposta(429, { ok: false, erro: "limite" });
   if (!r.ok) {
-    console.error("Erro do provedor de IA, status", r.status); // não registramos o texto da pessoa
+    // Registra só informações de diagnóstico do erro do Google; nunca a chave nem o relato.
+    let codigo = null;
+    try {
+      const erro = await r.json();
+      codigo = erro && erro.error && typeof erro.error.status === "string" ? erro.error.status : null;
+    } catch {
+      // Alguns erros podem não trazer corpo JSON.
+    }
+    console.error("Erro do provedor Gemini", { status: r.status, codigo });
+    if (r.status === 429) return resposta(429, { ok: false, erro: "limite" });
     return resposta(502, { ok: false, erro: "provedor" });
   }
 
